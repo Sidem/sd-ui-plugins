@@ -182,7 +182,7 @@
 
   const tokenizerAction = (e) => {
     let tokens = e.target.value.split(',');
-    let tokenCount = Math.floor(e.target.value.length / 3);
+    let tokenCount = Math.floor(e.target.value.length / 2.9);
     if (tokenCount > 75) {
       tokenCounter.classList.add("over-limit");
     } else {
