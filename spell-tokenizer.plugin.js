@@ -1,7 +1,7 @@
-(function () {
+(() => {
   "use strict"
   const GITHUB_PAGE = "https://github.com/sidem/sd-ui-plugins"
-  const VERSION = "1.2.0";
+  const VERSION = "1.3.0";
   const ID_PREFIX = "spell-tokenizer-plugin";
   const GITHUB_ID = "sidem-plugins"
   console.log('%s Version: %s', ID_PREFIX, VERSION);
@@ -74,7 +74,7 @@
     `;
   document.head.appendChild(styleSheet);
 
-  (function () {
+  (() => {
     const links = document.getElementById("community-links");
     if (links && !document.getElementById(`${GITHUB_ID}-link`)) {
       // Add link to plugin repo.
@@ -83,7 +83,7 @@
       links.appendChild(pluginLink);
     }
   })();
-
+  
   const tokenContainer = document.createElement('div');
   const tokenCounter = document.createElement('span');
   const textarea = document.getElementById('prompt');
@@ -160,6 +160,23 @@
 
   };
 
+  const getBoorutags = (link, element) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', link, true);
+    xhr.onload = () => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xhr.responseText, 'text/html');
+        const tags = doc.querySelectorAll('.search-tag');
+        const tagNames = [];
+        tags.forEach(tag => {
+            tagNames.push(tag.innerText.replace(/\s/g, '_'));
+        });
+        element.innerText = tagNames.join(', ');
+        applySpellString();
+    }
+    xhr.send();
+  };
+
   const applySpellString = () => {
     let tokenContainer = document.getElementById(`${ID_PREFIX}-token-container`);
     slist(tokenContainer);
@@ -193,7 +210,12 @@
     for (let token of tokens) {
       let newToken = document.createElement('span');
       newToken.classList.add(`${ID_PREFIX}-spell-token`);
-      newToken.innerText = token;
+      //regex without catastrophic backtracking that checks whether token is a valid url and contains the word booru
+      if (token.match(/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b[-a-zA-Z0-9@:%_\+.~#?&=]*/g) && token.match(/booru/g)) {
+        getBoorutags(token, newToken);
+      } else {
+        newToken.innerText = token;
+      }
       newToken.onwheel = modToken;
       tokenContainer.appendChild(newToken);
     }
@@ -210,6 +232,4 @@
   textarea.addEventListener('input', tokenizerAction);
   textarea.addEventListener('change', tokenizerAction);
   document.getElementById('prompt').dispatchEvent(new Event('input', { bubbles: true }));
-
-
 })();
