@@ -160,7 +160,7 @@
 
   };
 
-  const getBoorutags = (link, element) => {
+  const getBoorutags = (link, element, prefix) => {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', link, true);
     xhr.onload = () => {
@@ -171,7 +171,7 @@
         tags.forEach(tag => {
             tagNames.push(tag.innerText.replace(/\s/g, '_'));
         });
-        element.innerText = tagNames.join(', ');
+        element.innerText = prefix+", "+tagNames.join(', ');
         applySpellString();
     }
     xhr.send();
@@ -211,8 +211,8 @@
       let newToken = document.createElement('span');
       newToken.classList.add(`${ID_PREFIX}-spell-token`);
       //regex without catastrophic backtracking that checks whether token is a valid url and contains the word booru
-      if (token.match(/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b[-a-zA-Z0-9@:%_\+.~#?&=]*/g) && token.match(/booru/g)) {
-        getBoorutags(token, newToken);
+      if (token.match(/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b[-a-zA-Z0-9@:%_\+.~#?&=]*/) && token.match(/booru/)) {
+        getBoorutags("http"+token.split('http')[1], newToken, token.split('http')[0]);
       } else {
         newToken.innerText = token;
       }
