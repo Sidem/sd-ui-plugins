@@ -166,12 +166,14 @@
     xhr.onload = () => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(xhr.responseText, 'text/html');
-        const tags = doc.querySelectorAll('.search-tag');
+        let tags = doc.querySelectorAll('.search-tag');
+        if(tags.length == 0) tags = doc.querySelectorAll('.tag__name');
         const tagNames = [];
         tags.forEach(tag => {
             tagNames.push(tag.innerText.replace(/\s/g, '_'));
         });
-        element.innerText = prefix+", "+tagNames.join(', ');
+        if(prefix != "") prefix = prefix+", ";
+        element.innerText = prefix+tagNames.join(', ');
         applySpellString();
     }
     xhr.send();
