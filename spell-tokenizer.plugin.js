@@ -163,6 +163,8 @@
   const getBoorutags = (link, element, prefix) => {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', link, true);
+    let underscore = prefix.substring(prefix.length-1) == '_';
+    if(underscore) prefix = prefix.substring(0, prefix.length-1);
     xhr.onload = () => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(xhr.responseText, 'text/html');
@@ -170,7 +172,8 @@
         if(tags.length == 0) tags = doc.querySelectorAll('.tag__name');
         const tagNames = [];
         tags.forEach(tag => {
-            tagNames.push(tag.innerText.replace(/\s/g, '_'));
+            if (underscore) tagNames.push(tag.innerText.replace(/\s/g, '_'));
+            else tagNames.push(tag.innerText);
         });
         if(prefix != "") prefix = prefix+", ";
         element.innerText = prefix+tagNames.join(', ');
