@@ -71,6 +71,11 @@
       .${ID_PREFIX}-token-counter.over-limit {
         color: red;
       }
+      .${ID_PREFIX}-spell-token.duplicate {
+        border: 1px solid #cc9900;
+        background: var(--background-color2);
+        color: #000;
+      }
     `;
   document.head.appendChild(styleSheet);
 
@@ -222,6 +227,10 @@
         newToken.innerText = token;
       }
       newToken.onwheel = modToken;
+      //if a span element with with exactly the same inner text is already in the container, add the "duplicate" class
+      if (tokenContainer.innerHTML.includes(newToken.innerHTML)) {
+        newToken.classList.add("duplicate");
+      }
       tokenContainer.appendChild(newToken);
     }
     slist(tokenContainer);
