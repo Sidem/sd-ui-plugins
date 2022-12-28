@@ -220,16 +220,18 @@
     for (let token of tokens) {
       let newToken = document.createElement('span');
       newToken.classList.add(`${ID_PREFIX}-spell-token`);
-      //regex without catastrophic backtracking that checks whether token is a valid url and contains the word booru
       if (token.match(/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b[-a-zA-Z0-9@:%_\+.~#?&=]*/) && token.match(/booru/)) {
         getBoorutags("http"+token.split('http')[1], newToken, token.split('http')[0]);
       } else {
         newToken.innerText = token;
       }
       newToken.onwheel = modToken;
-      //if a span element with with exactly the same inner text is already in the container, add the "duplicate" class
-      if (tokenContainer.innerHTML.includes(newToken.innerHTML)) {
-        newToken.classList.add("duplicate");
+      if (tokenContainer.querySelectorAll(`.${ID_PREFIX}-spell-token`).length > 0) {
+        for (let existingToken of tokenContainer.querySelectorAll(`.${ID_PREFIX}-spell-token`)) {
+          if (existingToken.innerText.replaceAll('_', ' ').trim().includes(newToken.innerText.replaceAll('_', ' ').trim())) {
+            newToken.classList.add("duplicate");
+          }
+        }
       }
       tokenContainer.appendChild(newToken);
     }
