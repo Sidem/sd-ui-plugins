@@ -1,7 +1,7 @@
 (() => {
   "use strict"
   const GITHUB_PAGE = "https://github.com/sidem/sd-ui-plugins"
-  const VERSION = "1.3.0";
+  const VERSION = "1.4.0";
   const ID_PREFIX = "spell-tokenizer-plugin";
   const GITHUB_ID = "sidem-plugins"
   console.log('%s Version: %s', ID_PREFIX, VERSION);
@@ -88,7 +88,7 @@
       links.appendChild(pluginLink);
     }
   })();
-  
+
   const tokenContainer = document.createElement('div');
   const tokenCounter = document.createElement('span');
   const textarea = document.getElementById('prompt');
@@ -165,24 +165,57 @@
 
   };
 
+  // grab tags from xml response, use api key if available
+  const getBooruTagsThroughAPI = (link, element, prefix) => {
+    // extract GET parameter 'id' from link
+    let postid = link.match(/id=(\d+)/)[1];
+    let apilink = `https://gelbooru.com/index.php?page=dapi&s=post&q=index&id=${postid}`;
+    let finalLink = apilink + localStorage.getItem(`${ID_PREFIX}_api_key_gelbooru`);
+    const xhr = new XMLHttpRequest();
+    //set apilink as referrer to request headser
+    //combine link with gelbooru api key from localstorage if available for request
+    xhr.open('GET', finalLink, true);
+    xhr.setRequestHeader('Referer', finalLink);
+    xhr.onload = () => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xhr.responseText, 'text/xml');
+      let tags = doc.getElementsByTagName('tag');
+      let tagNames = tags.innerText.split(' ');
+      let underscore = prefix.substring(prefix.length - 1) == '_';
+      if (!underscore) tagNames = tagNames.map(tag => tag.replace(/_/g, ' '));
+      if (prefix != "") prefix = prefix + ", ";
+      element.innerText = prefix + tagNames.join(', ');
+      applySpellString();
+    };
+    xhr.send();
+  };
+
   const getBoorutags = (link, element, prefix) => {
+
     const xhr = new XMLHttpRequest();
     xhr.open('GET', link, true);
-    let underscore = prefix.substring(prefix.length-1) == '_';
-    if(underscore) prefix = prefix.substring(0, prefix.length-1);
+    let underscore = prefix.substring(prefix.length - 1) == '_';
+    if (underscore) prefix = prefix.substring(0, prefix.length - 1);
     xhr.onload = () => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(xhr.responseText, 'text/html');
-        let tags = doc.querySelectorAll('.search-tag');
-        if(tags.length == 0) tags = doc.querySelectorAll('.tag__name');
-        const tagNames = [];
-        tags.forEach(tag => {
-            if (underscore) tagNames.push(tag.innerText.replace(/\s/g, '_'));
-            else tagNames.push(tag.innerText);
-        });
-        if(prefix != "") prefix = prefix+", ";
-        element.innerText = prefix+tagNames.join(', ');
-        applySpellString();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xhr.responseText, 'text/html');
+      let tags = doc.querySelectorAll('.search-tag');
+      if (tags.length == 0) tags = doc.querySelectorAll('.tag__name');
+      if (tags.length == 0) tags = doc.querySelectorAll('.tag');
+      if (tags.length == 0) {
+        tags = doc.getElementsByTagName('a');
+        //filter collection to only contain any that haf an href that includes ?tag and have exactly two siblings
+        tags = Array.from(tags).filter(tag => tag.href.includes('tags=') && !tag.href.includes('#') && tag.parentElement.children.length == 3);
+      }
+
+      const tagNames = [];
+      tags.forEach(tag => {
+        if (underscore) tagNames.push(tag.innerText.replace(/\s/g, '_'));
+        else tagNames.push(tag.innerText);
+      });
+      if (prefix != "") prefix = prefix + ", ";
+      element.innerText = prefix + tagNames.join(', ');
+      applySpellString();
     }
     xhr.send();
   };
@@ -206,6 +239,13 @@
     tag.classList.append(`${ID_PREFIX}-spell-token`);
     tag.innerText = str;
   }
+  const makeSettingItem = (icon, id, name, description, content) => {
+    return `<div>
+              <div><i class="fa fa-${icon}"></i></div>
+              <div><label for="${ID_PREFIX}_${id}">${name}</label><small>${description}</small></div>
+              <div>${content}<label for="${ID_PREFIX}_${id}"></label></div></div></div>
+            `;
+  };
 
   const tokenizerAction = (e) => {
     let tokens = e.target.value.split(',');
@@ -220,16 +260,25 @@
     for (let token of tokens) {
       let newToken = document.createElement('span');
       newToken.classList.add(`${ID_PREFIX}-spell-token`);
-      if (token.match(/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b[-a-zA-Z0-9@:%_\+.~#?&=]*/) && token.match(/booru/)) {
-        getBoorutags("http"+token.split('http')[1], newToken, token.split('http')[0]);
+      if (token.match(/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b[-a-zA-Z0-9@:%_\+.~#?&=]*/) && (token.includes('booru') || token.includes('yande.re'))) {
+        if (token.includes('gelbooru')) {
+          getBooruTagsThroughAPI("http" + token.split('http')[1], newToken, token.split('http')[0]);
+        } else {
+          getBoorutags("http" + token.split('http')[1], newToken, token.split('http')[0]);
+        }
       } else {
         newToken.innerText = token;
       }
       newToken.onwheel = modToken;
-      if (tokenContainer.querySelectorAll(`.${ID_PREFIX}-spell-token`).length > 0) {
-        for (let existingToken of tokenContainer.querySelectorAll(`.${ID_PREFIX}-spell-token`)) {
-          if (existingToken.innerText.replaceAll('_', ' ').trim().includes(newToken.innerText.replaceAll('_', ' ').trim())) {
-            newToken.classList.add("duplicate");
+      //check if newToken with this innerText already exists, if so, give it "duplicate" class
+      //if localStorage.setItem(`${ID_PREFIX}_duplicate_token_highlight`, true) is true to do this
+      if (localStorage.getItem(`${ID_PREFIX}_duplicate_token_highlight`) === "true") {
+        if (tokenContainer.querySelectorAll(`.${ID_PREFIX}-spell-token`).length > 0) {
+          for (let existingToken of tokenContainer.querySelectorAll(`.${ID_PREFIX}-spell-token`)) {
+            //treat spaces and underscores as identical in comparison
+            if (existingToken.innerText.replaceAll('_', ' ').trim().includes(newToken.innerText.replaceAll('_', ' ').trim())) {
+              newToken.classList.add("duplicate");
+            }
           }
         }
       }
@@ -248,4 +297,20 @@
   textarea.addEventListener('input', tokenizerAction);
   textarea.addEventListener('change', tokenizerAction);
   document.getElementById('prompt').dispatchEvent(new Event('input', { bubbles: true }));
+  const settingsTable = document.getElementsByClassName('parameters-table')[0];
+  /*
+  settingsTable.innerHTML += makeSettingItem('hand-sparkles', 'gelbooru_api_key', 'API Key for Gelbooru', 'Enter API Key to enable Gelbooru tag extraction for Spell Tokenizer Plugin', `<input type="text" id="${ID_PREFIX}_api_key_gelbooru" name="${ID_PREFIX}_api_key_gelbooru" value="${localStorage.getItem(`${ID_PREFIX}_api_key_gelbooru`) || ''}">`);
+  //make sure to add a listener to the input element
+  document.getElementById(`${ID_PREFIX}_api_key_gelbooru`).addEventListener('input', (e) => {
+    localStorage.setItem(`${ID_PREFIX}_api_key_gelbooru`, e.target.value);
+  }*/
+  //html for a checkbox to enable or disable duplicate_token_highlight
+  let duplicateTokenHighlightCheckbox = `<input type="checkbox" id="${ID_PREFIX}_duplicate_token_highlight" name="${ID_PREFIX}_duplicate_token_highlight" value="true" ${localStorage.getItem(`${ID_PREFIX}_duplicate_token_highlight`) === 'true' ? 'checked' : ''}>`;
+  let toggleWrapper = `<div class="input-toggle">${duplicateTokenHighlightCheckbox}<label for="${ID_PREFIX}_duplicate_token_highlight"></label></div>`;
+  settingsTable.innerHTML += makeSettingItem('hand-sparkles', 'duplicate_token_highlight', 'Highlight duplicate Tokens', 'For spell tokenizer plugin', toggleWrapper);
+  //make sure to add a listener to the input element
+  document.getElementById(`${ID_PREFIX}_duplicate_token_highlight`).addEventListener('input', (e) => {
+    localStorage.setItem(`${ID_PREFIX}_duplicate_token_highlight`, e.target.checked);
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+  });
 })();
