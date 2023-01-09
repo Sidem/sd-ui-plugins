@@ -1,7 +1,7 @@
 (() => {
   "use strict"
   const GITHUB_PAGE = "https://github.com/sidem/sd-ui-plugins"
-  const VERSION = "1.4.0";
+  const VERSION = "1.4.1";
   const ID_PREFIX = "spell-tokenizer-plugin";
   const GITHUB_ID = "sidem-plugins"
   console.log('%s Version: %s', ID_PREFIX, VERSION);
@@ -240,11 +240,13 @@
     tag.innerText = str;
   }
   const makeSettingItem = (icon, id, name, description, content) => {
-    return `<div>
-              <div><i class="fa fa-${icon}"></i></div>
-              <div><label for="${ID_PREFIX}_${id}">${name}</label><small>${description}</small></div>
-              <div>${content}<label for="${ID_PREFIX}_${id}"></label></div></div></div>
-            `;
+    let settingsItem = document.createElement('div');
+    settingsItem.innerHTML = `
+      <div><i class="fa fa-${icon}"></i></div>
+      <div><label for="${ID_PREFIX}_${id}">${name}</label><small>${description}</small></div>
+      <div>${content}<label for="${ID_PREFIX}_${id}"></label></div></div>
+    `;
+    return settingsItem;
   };
 
   const tokenizerAction = (e) => {
@@ -305,10 +307,10 @@
     localStorage.setItem(`${ID_PREFIX}_api_key_gelbooru`, e.target.value);
   }*/
   //html for a checkbox to enable or disable duplicate_token_highlight
+  
   let duplicateTokenHighlightCheckbox = `<input type="checkbox" id="${ID_PREFIX}_duplicate_token_highlight" name="${ID_PREFIX}_duplicate_token_highlight" value="true" ${localStorage.getItem(`${ID_PREFIX}_duplicate_token_highlight`) === 'true' ? 'checked' : ''}>`;
   let toggleWrapper = `<div class="input-toggle">${duplicateTokenHighlightCheckbox}<label for="${ID_PREFIX}_duplicate_token_highlight"></label></div>`;
-  settingsTable.innerHTML += makeSettingItem('hand-sparkles', 'duplicate_token_highlight', 'Highlight duplicate Tokens', 'For spell tokenizer plugin', toggleWrapper);
-  //make sure to add a listener to the input element
+  settingsTable.appendChild(makeSettingItem('hand-sparkles', 'duplicate_token_highlight', 'Highlight duplicate Tokens', 'For spell tokenizer plugin', toggleWrapper));
   document.getElementById(`${ID_PREFIX}_duplicate_token_highlight`).addEventListener('input', (e) => {
     localStorage.setItem(`${ID_PREFIX}_duplicate_token_highlight`, e.target.checked);
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
